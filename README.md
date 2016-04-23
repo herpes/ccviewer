@@ -8,3 +8,6 @@ Ciscoコンフィグを読みこませて、対象スイッチに設定されて
 
 ## イメージ
 ![ccviewerイメージ](http://i.imgur.com/T6gbx68.jpg)
+
+## 動作環境
+ひとまずChrome
