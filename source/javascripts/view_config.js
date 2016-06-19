@@ -1,6 +1,7 @@
 // Const
 const INTERFACE_NAMES = {
   "FastEthernet": "Fe",
+  "GigabitEthernet": "Gi",
   "Vlan": "SVI"
 };
 
@@ -67,6 +68,17 @@ function addInterface(interface_info, node) {
     hasControls: false
   });
 
+  // IP address
+  if('ip_address' in interface_info && 'address' in interface_info.ip_address) {
+    var ip_address = new fabric.IText(interface_info.ip_address.address, {
+      left: 0,
+      top: 0,
+      fontSize: 12,
+      hasControls: false
+    });
+    interf.ip_address = ip_address;
+    console.log(interf.ip_address);
+  }
   interf.interface_name = interface_name;
 
   // set Interface position(top, left)
@@ -85,7 +97,19 @@ function setInterfacePosition(node) {
 
     interf.left = interf.interface_name.left = node.left - node.width/2 + d*(int_idx) + d;
     interf.top = interf.interface_name.top = node.height/2 + node.top - 10/2;
+
+    // Interface name
     interf.interface_name.top += 15;
+
+    // IP Address
+    if('ip_address' in interf) {
+      interf.ip_address.top = interf.top + 30;
+      interf.ip_address.left = interf.left;
+    }
+
+    // description
+
+    // 
   }
 }
 
@@ -98,56 +122,67 @@ function setNodePositsion(node) {
 // Node list
 node_list = [];
 
+// ----------------------------------------------------
+// MAIN
+// ----------------------------------------------------
 function load() {
   var canvas = this.__canvas = new fabric.Canvas('network', { selection: false });
   fabric.Object.prototype.originX = fabric.Object.prototype.originY = 'center';
 
   var configuration =
       {
-	"nodes": [
-	  {
-	    "hostname": "Router01",
-	    "interfaces": [
-              {
-		"interface": "FastEthernet 1/0",
-		"shutdown": false,
-		"type": "physical",
-		"description": "",
-		"switchport": {
-		  "mode": "trunk",
-		  "vlans": [1, 2, 100, 1002, 1003, 1004, 1005],
-		}
+          "nodes": [{
+              "hostname": "Router01",
+              "interfaces": [{
+                  "interface": "FastEthernet 1/0",
+                  "shutdown": false,
+                  "type": "physical",
+                  "description": "",
+                  "switchport": {
+                      "mode": "trunk",
+                      "vlans": [1, 2, 100, 1002, 1003, 1004, 1005],
+                  }
+              }, {
+                  "interface": "FastEthernet 1/1.600",
+                  "shutdown": false,
+                  "type": "subinterface",
+                  "description": "",
+                  "ip_address": {
+                      "address": "192.168.10.1",
+                      "prefix": 27
+                  }
+              }, {
+                  "interface": "Vlan100",
+                  "shutdown": false,
+                  "type": "svi",
+                  "description": "",
+                  "vlan": 100,
+                  "ip_address": {
+                      "address": "192.168.0.1",
+                      "prefix": 27
+                  }
+              }]
+          }],
+          "adjacencies": [{
+              "a": {
+                  "hostname": "Router01",
+                  "interface": "FastEthernet 1/0"
               },
-              {
-		"interface": "FastEthernet 1/1.600",
-		"shutdown": false,
-		"type": "subinterface",
-		"description": ""
-              },
-              {
-		"interface": "Vlan100",
-		"shutdown": false,
-		"type": "svi",
-		"description": "",
-		"switchport": {
-		  "mode": "access",
-		  "vlans": [1],
-		}
+              "b": {
+                  "hostname": "Router02",
+                  "interface": "FastEthernet 1/0"
               }
-	    ]
-	  }
-	],
-	"adjacencies": [
-	  {
-	    "a": { "hostname": "Router01", "interface": "FastEthernet 1/0" },
-	    "b": { "hostname": "Router02", "interface": "FastEthernet 1/0" }
-	  },
-	  {
-	    "a": { "hostname": "Router01", "interface": "FastEthernet 1/1" },
-	    "b": { "hostname": "Router03", "interface": "FastEthernet 1/1" }
-	  }
-	]
-};
+          }, {
+              "a": {
+                  "hostname": "Router01",
+                  "interface": "FastEthernet 1/1"
+              },
+              "b": {
+                  "hostname": "Router03",
+                  "interface": "FastEthernet 1/1"
+              }
+          }]
+      };
 
   // Load Configuration
   for(var node_idx in configuration.nodes) {
@@ -168,9 +203,13 @@ function load() {
     var node = node_list[node_idx];
     canvas.add(node);
     canvas.add(node.hostname);
+
     for(var int_idx in node.interfaces) {
       canvas.add(node.interfaces[int_idx]);
       canvas.add(node.interfaces[int_idx].interface_name);
+      if('ip_address' in node.interfaces[int_idx]){
+        canvas.add(node.interfaces[int_idx].ip_address);
+      }
     }
   }
 
