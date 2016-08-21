@@ -160,9 +160,9 @@ function setInterfacePosition(node) {
     }
 
     // Set Interface descriptions potision
-    for(var desc_idx in interf.descriptions) {
+    for (var desc_idx in interf.descriptions) {
       interf.descriptions[desc_idx].left = interf.left;
-      interf.descriptions[desc_idx].top = interf.top + 15 * (Number(desc_idx)+1);
+      interf.descriptions[desc_idx].top = interf.top + 15 * (Number(desc_idx) + 1);
     }
   }
 }
@@ -180,68 +180,76 @@ node_list = [];
 // MAIN
 // ----------------------------------------------------
 function load() {
-  var canvas = this.__canvas = new fabric.Canvas('network', {
-    selection: false
-  });
   fabric.Object.prototype.originX = fabric.Object.prototype.originY = 'center';
 
-/*
-  var configuration_ = {
-    'nodes': [{
-      'hostname': 'Router01',
-      'interfaces': [{
-        'interface': 'FastEthernet 1/0',
-        'shutdown': false,
-        'type': 'physical',
-        'description': '',
-        'switchport': {
-          'mode': 'trunk',
-          'vlans': [1, 2, 100, 1002, 1003, 1004, 1005],
+  var config_drop = document.getElementById('network');
+
+  config_drop.addEventListener('dragover', dragOverHandler);
+  config_drop.addEventListener('drop', dropHandler);
+}
+
+function config_load(config) {
+  /*
+    var configuration_ = {
+      'nodes': [{
+        'hostname': 'Router01',
+        'interfaces': [{
+          'interface': 'FastEthernet 1/0',
+          'shutdown': false,
+          'type': 'physical',
+          'description': '',
+          'switchport': {
+            'mode': 'trunk',
+            'vlans': [1, 2, 100, 1002, 1003, 1004, 1005],
+          }
+        }, {
+          'interface': 'FastEthernet 1/1.600',
+          'shutdown': false,
+          'type': 'subinterface',
+          'description': '',
+          'ip_address': {
+            'address': '192.168.10.1',
+            'prefix': 27
+          }
+        }, {
+          'interface': 'Vlan100',
+          'shutdown': false,
+          'type': 'svi',
+          'description': '',
+          'vlan': 100,
+          'ip_address': {
+            'address': '192.168.0.1',
+            'prefix': 27
+          }
+        }]
+      }],
+      'adjacencies': [{
+        'a': {
+          'hostname': 'Router01',
+          'interface': 'FastEthernet 1/0'
+        },
+        'b': {
+          'hostname': 'Router02',
+          'interface': 'FastEthernet 1/0'
         }
       }, {
-        'interface': 'FastEthernet 1/1.600',
-        'shutdown': false,
-        'type': 'subinterface',
-        'description': '',
-        'ip_address': {
-          'address': '192.168.10.1',
-          'prefix': 27
-        }
-      }, {
-        'interface': 'Vlan100',
-        'shutdown': false,
-        'type': 'svi',
-        'description': '',
-        'vlan': 100,
-        'ip_address': {
-          'address': '192.168.0.1',
-          'prefix': 27
+        'a': {
+          'hostname': 'Router01',
+          'interface': 'FastEthernet 1/1'
+        },
+        'b': {
+          'hostname': 'Router03',
+          'interface': 'FastEthernet 1/1'
         }
       }]
-    }],
-    'adjacencies': [{
-      'a': {
-        'hostname': 'Router01',
-        'interface': 'FastEthernet 1/0'
-      },
-      'b': {
-        'hostname': 'Router02',
-        'interface': 'FastEthernet 1/0'
-      }
-    }, {
-      'a': {
-        'hostname': 'Router01',
-        'interface': 'FastEthernet 1/1'
-      },
-      'b': {
-        'hostname': 'Router03',
-        'interface': 'FastEthernet 1/1'
-      }
-    }]
-  };
-*/
+    };
+  */
   // CiscoコンフィグファイルからコンフィグをJSON形式に変換
-  var configuration = parse_config_file();
+  var canvas = new fabric.Canvas('network', {
+    selection: false
+  });
+
+  var configuration = parse_config_file(config);
 
   // Load Configuration JSON
   for (var node_idx in configuration.nodes) {
@@ -276,7 +284,7 @@ function load() {
       }
 
       // Set Interface descriptions potision
-      for(var desc_idx in interf.descriptions) {
+      for (var desc_idx in interf.descriptions) {
         canvas.add(interf.descriptions[desc_idx]);
       }
     }
@@ -289,5 +297,24 @@ function load() {
     setNodePositsion(node);
 
     canvas.renderAll();
+  });
+}
+
+// DnD
+function dragOverHandler(event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'copy';
+}
+
+function dropHandler(event) {
+  event.stopPropagation();
+  event.preventDefault();
+  var files = event.dataTransfer.files;
+  Array.prototype.forEach.call(files, function(file) {
+    var reader = new FileReader();
+    reader.addEventListener('load', function(event) {
+      config_load(event.target.result);
+    });
+    reader.readAsText(file);
   });
 }

@@ -192,7 +192,7 @@ function parse_if(c) {
 
 // Ciscoコンフィグファイルを引数にコンフィグをパース
 // JSONを返却
-function parse_config_file() {
+function parse_config_file(config) {
   // ---------------------------------
   // 返却値の作成
   // ---------------------------------
@@ -206,12 +206,12 @@ function parse_config_file() {
   //   TODO: 本来は複数ファイルに対して実行する
   // ---------------------------------
   var node = {
-    "hostname": CONFIG.match(/^\s+hostname (.+)$/m)[1],
+    "hostname": config.match(/^\s+hostname (.+)$/m)[1],
     "interfaces": []
   }
 
   //
-  var m = CONFIG.match(/interface [\s\S.]+?!/g);
+  var m = config.match(/interface [\s\S.]+?!/g);
   for (i in m) {
     node["interfaces"].push(parse_if(m[i]));
   }
