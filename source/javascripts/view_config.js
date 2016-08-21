@@ -113,37 +113,49 @@ function addInterface(interface_info, node) {
   // add Interface to Node
   node.interfaces.push(interf);
 
-  // set Interface position(top, left)
-  setInterfacePosition(node);
-
   return interf;
 }
 
 // set Interface top, height from node position
 function setInterfacePosition(node) {
-  var interfaces_count = node.interfaces.length;
+  var interface_count = 0;
   var svi_count = 0;
-  var int_count = 0;
-  var d = node.width / (interfaces_count + 1);
+
+  for (var int_idx in node.interfaces) {
+    var interf = node.interfaces[int_idx];
+
+    if (interf.type == 'svi') {
+      svi_count += 1;
+    } else {
+      interface_count += 1;
+    }
+  }
+
+  var d = node.width / (interface_count + 1);
+  var svi_d = node.width / (svi_count + 1);
+
+  // counter
+  var i = 0;
+  var svi_i = 0;
 
   for (var int_idx in node.interfaces) {
     var interf = node.interfaces[int_idx];
 
     if (interf.type == 'svi') {
       // SVI
-      svi_count += 1;
+      svi_i += 1;
 
-      interf.left = node.left - node.width / 2 + d * (svi_count + 1);
+      interf.left = node.left - node.width / 2 + svi_d * svi_i;
       interf.top = node.top + 15;
       interf.interface_name.left = interf.left;
       interf.interface_name.top = interf.top;
 
     } else {
       // physical or SubIF
-      int_count += 1;
+      i += 1;
 
       // Set Interface Object position
-      interf.left = node.left - node.width / 2 + d * (int_count + 1);
+      interf.left = node.left - node.width / 2 + d * i;
       interf.top = node.height / 2 + node.top - 10 / 2;
     }
 
@@ -173,7 +185,8 @@ function load() {
   });
   fabric.Object.prototype.originX = fabric.Object.prototype.originY = 'center';
 
-  var configuration = {
+/*
+  var configuration_ = {
     'nodes': [{
       'hostname': 'Router01',
       'interfaces': [{
@@ -226,8 +239,11 @@ function load() {
       }
     }]
   };
+*/
+  // CiscoコンフィグファイルからコンフィグをJSON形式に変換
+  var configuration = parse_config_file();
 
-  // Load Configuration
+  // Load Configuration JSON
   for (var node_idx in configuration.nodes) {
     // Get Node
     var node_info = configuration.nodes[node_idx];
@@ -240,6 +256,9 @@ function load() {
       addInterface(interface_info, node);
     }
   }
+
+  // set Interface position(top, left)
+  setInterfacePosition(node);
 
   // View Nodes and Interfaces
   for (var node_idx in node_list) {
