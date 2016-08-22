@@ -248,7 +248,7 @@ function config_load(config) {
   var canvas = new fabric.Canvas('network', {
     selection: false
   });
-
+  
   var configuration = parse_config_file(config);
 
   // Load Configuration JSON
