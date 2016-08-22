@@ -1,10 +1,13 @@
----
-title: Welcome to Middleman
----
+doctype html
+html
+  head
+    script src="./javascripts/fabric.js"
+    script src="./javascripts/view_config.js"
+    script src="./javascripts/parse_config.js"
+  h1 CCVIEWER
 
-.welcome
-  .logo
-    == image_tag 'middleman-logo.svg'
-  h1 Middleman is Watching
-  p.doc
-    == link_to "Read Online Documentation", "http://middlemanapp.com/"
+.canvas
+  canvas.drop#network width=1000 height=500 margin=0
+    javascript:
+      load();
+    
