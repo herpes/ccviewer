@@ -1,10 +1,18 @@
-// Const
+/****************
+ * Const
+ ****************/
 const INTERFACE_NAMES = {
   'FastEthernet': 'Fe',
   'GigabitEthernet': 'Gi',
   'Vlan': 'SVI'
 };
 
+const NODE_WIDTH = 800;
+const NODE_HEIGHT = 200;
+
+/****************
+ * Functions
+ ****************/
 // abbreviate some words
 function abbreviate(str) {
   for (var k in INTERFACE_NAMES) {
@@ -19,8 +27,8 @@ function makeNode(node_info, left, top) {
   var node = new fabric.Rect({
     left: left,
     top: top,
-    width: 400,
-    height: 200,
+    width: NODE_WIDTH,
+    height: NODE_HEIGHT,
     strokeWidth: 1,
     fill: '#bebebe',
     stroke: '#000',
@@ -48,8 +56,8 @@ function makeNode(node_info, left, top) {
 function addInterface(interface_info, node) {
   var interf = null;
 
-  // SVI
   if (interface_info.type == 'svi') {
+    // SVI
     var interf = new fabric.Rect({
       left: 0,
       top: 0,
@@ -94,7 +102,10 @@ function addInterface(interface_info, node) {
     fontSize: 12,
     hasControls: false
   });
-  interf.descriptions.push(interface_name);
+
+  if(interface_info.type != 'svi') {
+    interf.descriptions.push(interface_name);
+  }
 
   // Set IP address
   if ('ip_address' in interface_info && 'address' in interface_info.ip_address) {
@@ -134,7 +145,6 @@ function setInterfacePosition(node) {
   var d = node.width / (interface_count + 1);
   var svi_d = node.width / (svi_count + 1);
 
-  // counter
   var i = 0;
   var svi_i = 0;
 
@@ -176,9 +186,7 @@ function setNodePositsion(node) {
 // Node list
 node_list = [];
 
-// ----------------------------------------------------
-// MAIN
-// ----------------------------------------------------
+// 初期関数
 function load() {
   fabric.Object.prototype.originX = fabric.Object.prototype.originY = 'center';
 
@@ -188,74 +196,22 @@ function load() {
   config_drop.addEventListener('drop', dropHandler);
 }
 
-function config_load(config) {
-  /*
-    var configuration_ = {
-      'nodes': [{
-        'hostname': 'Router01',
-        'interfaces': [{
-          'interface': 'FastEthernet 1/0',
-          'shutdown': false,
-          'type': 'physical',
-          'description': '',
-          'switchport': {
-            'mode': 'trunk',
-            'vlans': [1, 2, 100, 1002, 1003, 1004, 1005],
-          }
-        }, {
-          'interface': 'FastEthernet 1/1.600',
-          'shutdown': false,
-          'type': 'subinterface',
-          'description': '',
-          'ip_address': {
-            'address': '192.168.10.1',
-            'prefix': 27
-          }
-        }, {
-          'interface': 'Vlan100',
-          'shutdown': false,
-          'type': 'svi',
-          'description': '',
-          'vlan': 100,
-          'ip_address': {
-            'address': '192.168.0.1',
-            'prefix': 27
-          }
-        }]
-      }],
-      'adjacencies': [{
-        'a': {
-          'hostname': 'Router01',
-          'interface': 'FastEthernet 1/0'
-        },
-        'b': {
-          'hostname': 'Router02',
-          'interface': 'FastEthernet 1/0'
-        }
-      }, {
-        'a': {
-          'hostname': 'Router01',
-          'interface': 'FastEthernet 1/1'
-        },
-        'b': {
-          'hostname': 'Router03',
-          'interface': 'FastEthernet 1/1'
-        }
-      }]
-    };
-  */
-  // CiscoコンフィグファイルからコンフィグをJSON形式に変換
+// JSON化したコンフィグファイルを
+// fabricのオブジェクトに変換し、canvasに追加
+function view_config(config) {
   var canvas = new fabric.Canvas('network', {
     selection: false
   });
-  
+
+  // CiscoコンフィグファイルをJSON形式に変換
+  // (parse-view.js内の関数)
   var configuration = parse_config_file(config);
 
-  // Load Configuration JSON
+  // JSON化したコンフィグファイルをオブジェクトに変換
   for (var node_idx in configuration.nodes) {
     // Get Node
     var node_info = configuration.nodes[node_idx];
-    var node = makeNode(node_info, 200, 200);
+    var node = makeNode(node_info, NODE_WIDTH/2, NODE_HEIGHT/2);
     node_list.push(node);
 
     for (var int_idx in node_info.interfaces) {
@@ -265,32 +221,35 @@ function config_load(config) {
     }
   }
 
-  // set Interface position(top, left)
+  // インタフェースオブジェクトの座標設定
   setInterfacePosition(node);
 
-  // View Nodes and Interfaces
+  // ノード情報、インタフェース情報をcanvasに追加
   for (var node_idx in node_list) {
     var node = node_list[node_idx];
+
+    // ノード情報を追加
     canvas.add(node);
     canvas.add(node.hostname);
 
+    // インタフェース情報を追加
     for (var int_idx in node.interfaces) {
       var interf = node.interfaces[int_idx];
       canvas.add(interf);
 
-      // SVI
+      // SVIはインタフェース名を追加
       if (interf.type == 'svi') {
         canvas.add(interf.interface_name);
       }
 
-      // Set Interface descriptions potision
+      // descriptionを追加
       for (var desc_idx in interf.descriptions) {
         canvas.add(interf.descriptions[desc_idx]);
       }
     }
   }
 
-  // Moving action
+  // オブジェクト移動中のアクション
   canvas.on('object:moving', function(e) {
     var node = e.target;
     setInterfacePosition(node);
@@ -300,21 +259,28 @@ function config_load(config) {
   });
 }
 
-// DnD
+/*****************************
+ * コンフィグファイルDnD関連
+ *****************************/
+// ドラッグ中のイベント関数
 function dragOverHandler(event) {
   event.preventDefault();
   event.dataTransfer.dropEffect = 'copy';
 }
 
+// ドロップ時のイベント関数
 function dropHandler(event) {
   event.stopPropagation();
   event.preventDefault();
+  
   var files = event.dataTransfer.files;
   Array.prototype.forEach.call(files, function(file) {
     var reader = new FileReader();
     reader.addEventListener('load', function(event) {
-      config_load(event.target.result);
+      view_config(event.target.result);
     });
+
+    // ファイルをテキストとして読み込み
     reader.readAsText(file);
   });
 }
