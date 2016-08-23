@@ -57,7 +57,9 @@ function addInterface(interface_info, node) {
   var interf = null;
 
   if (interface_info.type == 'svi') {
-    // SVI
+    // ---------------------------------
+    // SVIインタフェースオブジェクトの設定
+    // ---------------------------------
     var interf = new fabric.Rect({
       left: 0,
       top: 0,
@@ -70,6 +72,7 @@ function addInterface(interface_info, node) {
       ry: 2,
       hasControls: false
     });
+    
     var interface_name = new fabric.IText("" + interface_info.vlan, {
       fontSize: 10,
       fill: "#ffffff"
@@ -77,8 +80,25 @@ function addInterface(interface_info, node) {
 
     interf.type = 'svi';
     interf.interface_name = interface_name;
-  } else {
-    // physical or SubIF
+    
+    // SVIオブジェクトの下に表示する情報
+    interf.descriptions = [];
+    
+    // IPアドレス
+    if ('ip_address' in interface_info && 'address' in interface_info.ip_address) {
+      var ip_addr_text = interface_info.ip_address.address + "/" + interface_info.ip_address.prefix;
+      var ip_address = new fabric.IText(ip_addr_text, {
+	left: 0,
+	top: 0,
+	fontSize: 12,
+	hasControls: false
+      });
+      interf.descriptions.push(ip_address);
+    }
+  } else if(interface_info.type == 'physical'){
+    // ---------------------------------
+    // 物理IFオブジェクトの設定
+    // ---------------------------------
     var interf = new fabric.Rect({
       left: 0,
       top: 0,
@@ -89,40 +109,59 @@ function addInterface(interface_info, node) {
       stroke: '#000',
       hasControls: false
     });
-  }
 
-  // interface descriptions
-  // e.g. Interfacename, IP address, description etc..
-  interf.descriptions = [];
-
-  // Set Interface name
-  var interface_name = new fabric.IText(abbreviate(interface_info.interface), {
-    left: 0,
-    top: 0,
-    fontSize: 12,
-    hasControls: false
-  });
-
-  if(interface_info.type != 'svi') {
-    interf.descriptions.push(interface_name);
-  }
-
-  // Set IP address
-  if ('ip_address' in interface_info && 'address' in interface_info.ip_address) {
-    var ip_address = new fabric.IText(interface_info.ip_address.address, {
+    // 物理IFオブジェクトの下に表示する情報
+    interf.descriptions = [];
+    // 物理IFのインタフェース名
+    var interface_name = new fabric.IText(abbreviate(interface_info.interface), {
       left: 0,
       top: 0,
       fontSize: 12,
       hasControls: false
     });
-    interf.descriptions.push(ip_address);
+    interf.descriptions.push(interface_name);
+
+    // SubIF設定時の検索用タグ
+    interf.interface_name = interface_info.interface;
+    
+  } else if(interface_info.type = 'subinterface'){
+    // ---------------------------------
+    // SubIFオブジェクトの設定
+    // サブインタフェースは画面上表示しない
+    // ---------------------------------
+
+    // ---------------------------------
+    // 既に作成済みの物理IFのdescriptionに情報追加
+    // ---------------------------------
+    for (var int_idx in node.interfaces) {
+      var i = node.interfaces[int_idx];
+
+      var if_name = interface_info.interface.match(/(.+)\.(.+)/)[1];
+      var subif_id = interface_info.interface.match(/(.+)\.(.+)/)[2];
+
+      if (i.interface_name == if_name) {
+	// SubIF番号とIPアドレス情報追加
+	if ('ip_address' in interface_info && 'address' in interface_info.ip_address) {
+	  var ip_addr_text = "." + subif_id + ":" + interface_info.ip_address.address + "/" + interface_info.ip_address.prefix;
+	  var ip_address = new fabric.IText(ip_addr_text, {
+	    left: 0,
+	    top: 0,
+	    fontSize: 12,
+	    hasControls: false
+	  });
+	  i.descriptions.push(ip_address);
+	}
+      }
+    }
   }
 
   // Set description
   // TODO
 
   // add Interface to Node
-  node.interfaces.push(interf);
+  if (interf != null) {
+    node.interfaces.push(interf);
+  }
 
   return interf;
 }
@@ -198,7 +237,7 @@ function load() {
 
 // JSON化したコンフィグファイルを
 // fabricのオブジェクトに変換し、canvasに追加
-function view_config(config) {
+function viewConfig(config) {
   var canvas = new fabric.Canvas('network', {
     selection: false
   });
@@ -277,7 +316,7 @@ function dropHandler(event) {
   Array.prototype.forEach.call(files, function(file) {
     var reader = new FileReader();
     reader.addEventListener('load', function(event) {
-      view_config(event.target.result);
+      viewConfig(event.target.result);
     });
 
     // ファイルをテキストとして読み込み
